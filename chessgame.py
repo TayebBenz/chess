@@ -522,7 +522,6 @@ def check_shortcastle(square,color,matrix):
     if color == "white":
         if not(white_king.type.moved):
             if not(matrix[7][7].piece == "free") and matrix[7][7].piece.type.name == "rook" and not(matrix[7][7].piece.type.moved):
-                print(matrix[7][7].piece.type.moved)
                 for piece in dark_pieces:
                     for collum in range(white_king.square.collum,8):
                         if not(piece.type.name == "king") and legal_move(matrix[7][collum],piece.piece_moves()):
@@ -556,7 +555,7 @@ def check_longcastle(square,color,matrix):
 
     if color == "white":
         if not(white_king.type.moved):
-            if not(matrix[7][7].piece == "free") and matrix[7][0].piece.type.name == "rook" and not(matrix[7][0].piece.type.moved):
+            if not(matrix[7][0].piece == "free") and matrix[7][0].piece.type.name == "rook" and not(matrix[7][0].piece.type.moved):
                 for piece in dark_pieces:
                     for collum in range(white_king.square.collum,-1,-1):
                         if not(piece.type.name == "king") and legal_move(matrix[7][collum],piece.piece_moves()):
@@ -572,7 +571,7 @@ def check_longcastle(square,color,matrix):
 
     else:
         if not(dark_king.type.moved):
-            if not(matrix[0][7].piece == "free") and matrix[0][0].piece.type.name == "rook" and not(matrix[0][0].piece.type.moved):
+            if not(matrix[0][0].piece == "free") and matrix[0][0].piece.type.name == "rook" and not(matrix[0][0].piece.type.moved):
                 for piece in white_pieces:
                     for collum in range(dark_king.square.collum,-1,-1):
                         if not(piece.type.name == "king") and legal_move(matrix[0][collum],piece.piece_moves()):
@@ -898,7 +897,11 @@ def move_played(mouse,matrix):
                         mouse.piece.square.visibility = True
                         mouse.piece = "free"
                         # print(last_position.piece.type.name," from ",last_position.line,last_position.collum, " denied move to ",square.line,square.collum)
+
                         return
+        if not(mouse.piece == "free"):
+            mouse.piece.square.visibility = True
+            mouse.piece = "free"
     else:
         mouse.piece.square.visibility = True
         mouse.piece = "free"
