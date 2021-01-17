@@ -13,11 +13,13 @@ size = width, height = 1500, 1000
 screen = pygame.display.set_mode(size)
 font = pygame.font.SysFont(None, 100)
 reply_font = pygame.font.SysFont(None, 60)
+stalemate_font =  pygame.font.SysFont(None, 80)
 white_won = font.render('White won!',True,white)
 black_won = font.render('Black won!',True,(130,130,130))
 white_turn = font.render('White turn',True,white)
 black_turn = font.render('Black turn',True,(130,130,130))
-stalemate_message = font.render('White turn',True,white)
+
+stalemate_message = stalemate_font.render('Draw by stalemate',True,white)
 
 replay_message = reply_font.render('Press Enter to replay!',True,white)
 
@@ -100,7 +102,7 @@ class Knight:
                     self.moves.append(matrix[line][collum])
 
         line = orig_line - 2
-        if line < 8:
+        if line > -1:
             collum = orig_collum+1
             if collum < 8:
                 if matrix[line][collum].piece == "free":
@@ -134,7 +136,7 @@ class Knight:
                     self.moves.append(matrix[line][collum])
 
         collum = orig_collum - 2
-        if collum < 8:
+        if collum > -1:
             line = orig_line+1
             if line < 8:
                 if matrix[line][collum].piece == "free":
@@ -361,12 +363,22 @@ class Bishop:
 class King:
     points = "kekw"
     name = "king"
+    moved = False
+    shortcastle = False
+    longcastle = False
     moves = []
 
     def piece_moves(self,square,color,matrix):
         self.moves = []
         orig_line = square.line
         orig_collum = square.collum
+
+        if not(self.moved):
+            self.shortcastle = check_shortcastle(square,color,matrix)
+            self.longcastle = check_longcastle(square,color,matrix)
+        else:
+            self.longcastle = False
+            self.shortcastle = False
 
         line = orig_line
         collum = orig_collum +1
@@ -437,6 +449,7 @@ class King:
 class Rook:
     points = 5
     name = "rook"
+    moved = False
     moves = []
 
     def piece_moves(self,square,color,matrix):   #square is where the piece is currently at
@@ -501,6 +514,77 @@ matrix = [[Square((100,100),"white"),Square((200,100),"dark"),Square((300,100),"
         ,[Square((100,800),"dark"),Square((200,800),"white"),Square((300,800),"dark"),Square((400,800),"white")
         ,Square((500,800),"dark"),Square((600,800),"white"),Square((700,800),"dark"),Square((800,800),"white")]
         ]
+
+def check_shortcastle(square,color,matrix):
+    global white_pieces
+    global dark_pieces
+
+    if color == "white":
+        if not(white_king.type.moved):
+            if not(matrix[7][7].piece == "free") and matrix[7][7].piece.type.name == "rook" and not(matrix[7][7].piece.type.moved):
+                print(matrix[7][7].piece.type.moved)
+                for piece in dark_pieces:
+                    for collum in range(white_king.square.collum,8):
+                        if not(piece.type.name == "king") and legal_move(matrix[7][collum],piece.piece_moves()):
+                            return False
+                    for collum in range(dark_king.square.collum+1,7):
+                        if not(matrix[7][collum].piece == "free"):
+                            return False
+            else:
+                return False
+            return True
+        return False
+
+    else:
+        if not(dark_king.type.moved):
+            if not(matrix[0][7].piece == "free") and matrix[0][7].piece.type.name == "rook" and not(matrix[0][7].piece.type.moved):
+                for piece in white_pieces:
+                    for collum in range(dark_king.square.collum,8):
+                        if not(piece.type.name == "king") and legal_move(matrix[0][collum],piece.piece_moves()):
+                            return False
+                    for collum in range(dark_king.square.collum+1,7):
+                        if not(matrix[0][collum].piece == "free"):
+                            return False
+            else:
+                return False
+            return True
+        return False
+
+def check_longcastle(square,color,matrix):
+    global white_pieces
+    global dark_pieces
+
+    if color == "white":
+        if not(white_king.type.moved):
+            if not(matrix[7][7].piece == "free") and matrix[7][0].piece.type.name == "rook" and not(matrix[7][0].piece.type.moved):
+                for piece in dark_pieces:
+                    for collum in range(white_king.square.collum,-1,-1):
+                        if not(piece.type.name == "king") and legal_move(matrix[7][collum],piece.piece_moves()):
+                            return False
+                    for collum in range(white_king.square.collum-1,0,-1):
+                        if not(matrix[7][collum].piece == "free"):
+                            # print("NOT ENOUF MANAAAA")
+                            return False
+            else:
+                return False
+            return True
+        return False
+
+    else:
+        if not(dark_king.type.moved):
+            if not(matrix[0][7].piece == "free") and matrix[0][0].piece.type.name == "rook" and not(matrix[0][0].piece.type.moved):
+                for piece in white_pieces:
+                    for collum in range(dark_king.square.collum,-1,-1):
+                        if not(piece.type.name == "king") and legal_move(matrix[0][collum],piece.piece_moves()):
+                            return False
+                    for collum in range(dark_king.square.collum-1,0,-1):
+                        if not(matrix[0][collum].piece == "free"):
+                            return False
+            else:
+                return False
+            return True
+        return False
+
 
 
 dark_king, white_king = "",""
@@ -687,6 +771,82 @@ def move_played(mouse,matrix):
             for square in line:
                 if whiteSquare.get_rect(center=square.center).collidepoint(mouse.mouse_position):
                     last_position = mouse.piece.square
+                    if mouse.piece.type.name =="king":
+                        if mouse.piece.type.shortcastle:
+                            if mouse.piece.color == "white":
+                                for collum in range(5,8):
+                                    if square == matrix[7][collum]:
+                                        white_king.square.visibility = True
+                                        white_king.square.piece = "free"
+                                        white_king.square = matrix[7][6]
+                                        white_king.square.piece = white_king
+                                        white_king.type.moved = True
+
+                                        matrix[7][7].piece.square = matrix[7][5]
+                                        matrix[7][5].piece = matrix[7][7].piece
+                                        matrix[7][5].piece.type.moved = True
+                                        matrix[7][7].piece = "free"
+                                        mouse.piece = "free"
+                                        move_routine("dark")
+                                        playerColor = "dark"
+                                        moves_count+=1
+                                        return
+                            if mouse.piece.color == "dark":
+                                for collum in range(5,8):
+                                    if square == matrix[0][collum]:
+                                        dark_king.square.visibility = True
+                                        dark_king.square.piece = "free"
+                                        dark_king.square = matrix[0][6]
+                                        dark_king.square.piece = dark_king
+                                        dark_king.type.moved = True
+
+                                        matrix[0][7].piece.square = matrix[0][5]
+                                        matrix[0][5].piece = matrix[0][7].piece
+                                        matrix[0][5].piece.type.moved = True
+                                        matrix[0][7].piece = "free"
+                                        mouse.piece = "free"
+                                        move_routine("white")
+                                        playerColor = "white"
+                                        moves_count+=1
+                                        return
+                        if mouse.piece.type.longcastle:
+                            if mouse.piece.color == "white":
+                                for collum in range(2,-1,-1):
+                                    if square == matrix[7][collum]:
+                                        white_king.square.visibility = True
+                                        white_king.square.piece = "free"
+                                        white_king.square = matrix[7][2]
+                                        white_king.square.piece = white_king
+                                        white_king.type.moved = True
+
+                                        matrix[7][0].piece.square = matrix[7][3]
+                                        matrix[7][3].piece = matrix[7][0].piece
+                                        matrix[7][3].piece.type.moved = True
+                                        matrix[7][0].piece = "free"
+                                        mouse.piece = "free"
+                                        move_routine("dark")
+                                        playerColor = "dark"
+                                        moves_count+=1
+                                        return
+                            if mouse.piece.color == "dark":
+                                for collum in range(2,-1,-1):
+                                    if square == matrix[0][collum]:
+                                        dark_king.square.visibility = True
+                                        dark_king.square.piece = "free"
+                                        dark_king.square = matrix[0][2]
+                                        dark_king.square.piece = dark_king
+                                        dark_king.type.moved = True
+
+                                        matrix[0][0].piece.square = matrix[0][3]
+                                        matrix[0][3].piece = matrix[0][0].piece
+                                        matrix[0][3].piece.type.moved = True
+                                        matrix[0][0].piece = "free"
+                                        mouse.piece = "free"
+                                        move_routine("white")
+                                        playerColor = "white"
+                                        moves_count+=1
+                                        return
+
                     if legal_move(square,mouse.piece.piece_moves()):
                         if not(square.piece == "free"):
                             last_piece = square.piece
@@ -718,13 +878,16 @@ def move_played(mouse,matrix):
                         if( square.piece.type.name == "pawn"):
                             square.piece.type.first_move = False
                             promoted_pawn(square.piece)
-
+                        if square.piece.type.name =="king" or square.piece.type.name =="rook":
+                            square.piece.type.moved = True
 
                         if(square.piece.color == "white"):
                             move_routine("dark")
+
                             playerColor = "dark"
                         else:
                             move_routine("white")
+
                             playerColor = "white"
 
                         moves_count+=1
@@ -826,25 +989,18 @@ def white_mated():
 
 def move_routine(playerColor):
     global game_finished
+    global stalemate
     if(player_king_incheck(playerColor)):
         if playerColor =="white" and white_mated():
-            screen.blit(black_won,(1000,250))
-            screen.blit(replay_message,(950,400))
             game_finished = True
 
         elif playerColor =="dark" and dark_mated():
-            screen.blit(white_won,(1000,250))
-            screen.blit(replay_message,(950,400))
             game_finished = True
         return
     if playerColor =="white" and white_mated():
-        screen.blit(stalemate_message,(1000,250))
-        screen.blit(replay_message,(950,400))
         stalemate = True
 
     elif playerColor =="dark" and dark_mated():
-        screen.blit(stalemate_message,(1000,250))
-        screen.blit(replay_message,(950,400))
         stalemate = True
 
 
@@ -912,7 +1068,7 @@ while 1:
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT: sys.exit()
-        if(game_finished == False):
+        if(game_finished == False and stalemate == False):
             if event.type == MOUSEBUTTONDOWN:
                 for button in pygame.mouse.get_pressed(num_buttons=3):
                     if button == True:
@@ -948,11 +1104,20 @@ while 1:
                 if mouse.mouse_position[1] > 50 and mouse.mouse_position[1] < 850:
                     showpiece(mouse.piece,mouse.mouse_position)
 
-        if(game_finished== False and stalemate == False):
+        if game_finished == True:
+            if playerColor == "white":
+                screen.blit(black_won,(1000,250))
+                screen.blit(replay_message,(950,400))
+            else:
+                screen.blit(white_won,(950,250))
+                screen.blit(replay_message,(950,400))
+        elif(stalemate ==True):
+            screen.blit(stalemate_message,(950,220))
+            screen.blit(replay_message,(950,400))
+        else:
             if playerColor == "white":
                 screen.blit(white_turn,(1000,250))
             else:
                 screen.blit(black_turn,(1000,250))
-
 
         pygame.display.flip()
